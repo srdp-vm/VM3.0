@@ -141,7 +141,7 @@ public class WebSocket {
 		ArrayList<Item> itemList = new ArrayList<Item>();
 		for (int i = 1; i <= 7; i++) {
 			Item item = service.findById(i);
-			item.setNum(new Random().nextInt());
+			item.setNum(new Random().nextInt(100));
 			itemList.add(item);
 		}
 		return itemList;
