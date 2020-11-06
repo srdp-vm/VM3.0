@@ -2,6 +2,9 @@ package servlet;
 
 import java.io.IOException;
 
+import po.OrderStore;
+import service.OrderStoreService;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -14,6 +17,7 @@ import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.domain.AlipayTradeWapPayModel;
 import com.alipay.api.request.AlipayTradeWapPayRequest;
 import com.alipay.config.AlipayConfig;
+import com.google.gson.Gson;
 
 /**
  * Servlet implementation class PayServlet
@@ -33,21 +37,39 @@ public class Pay extends HttpServlet {
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		if(request.getParameter("WIDout_trade_no")!=null){
+		String params = request.getParameter("jsondata");
+		params = new String(params.getBytes("ISO-8859-1"),"utf-8");
+		System.out.println("params:"+params);
+		//解析json
+		Gson gson = new Gson();
+		OrderStore orderStore = gson.fromJson(params,OrderStore.class);
+		/**
+		System.out.println(orderStore.getOrder_id());
+		System.out.println(orderStore.getSubject());
+		System.out.println(orderStore.getCreate_time());
+		System.out.println(orderStore.getTotal_amount());
+		System.out.println(orderStore.getItems().isEmpty());
+		**/
+		if(orderStore.getOrder_id()!=null){
 			// 商户订单号，商户网站订单系统中唯一订单号，必填
-		    String out_trade_no = new String(request.getParameter("WIDout_trade_no").getBytes("ISO-8859-1"),"UTF-8");
+		    String out_trade_no = orderStore.getOrder_id();
+		    out_trade_no = new String(out_trade_no.getBytes("ISO-8859-1"),"utf-8");
 		    System.out.println("订单编号：" + out_trade_no);
-		   // 订单名称，必填
-		    String subject = new String(request.getParameter("WIDsubject").getBytes("ISO-8859-1"),"UTF-8");
+		    // 订单名称，必填
+		    String subject = orderStore.getSubject();
 			System.out.println("订单名称：" + subject);
-			// 付款金额，必填
-		    String total_amount=new String(request.getParameter("WIDtotal_amount").getBytes("ISO-8859-1"),"UTF-8");
+			// 付款金额，必填，金额为0时无法唤起支付
+		    String total_amount=String.valueOf(orderStore.getTotal_amount());
+		    //String total_amount="2.12";
 		    System.out.println("付款金额：" + total_amount);
-		   // 商品描述，可空
-		    String body = new String(request.getParameter("WIDbody").getBytes("ISO-8859-1"),"UTF-8");
-		   // 超时时间 可空
-		   String timeout_express="2m";
-		   // 销售产品码 必填
+		    //商品描述，可空
+		    //String body = new String(request.getParameter("WIDbody").getBytes("ISO-8859-1"),"UTF-8");
+		    String body = "农夫山泉有点甜";
+		    // body = new String(body.getBytes("ISO-8859-1"),"utf-8");
+		    System.out.println("商品描述：" + body);
+		    // 超时时间 可空
+		    String timeout_express="2m";
+		    // 销售产品码 必填
 		    String product_code="QUICK_WAP_WAY";
 		    /**********************/
 		    // SDK 公共请求类，包含公共请求参数，以及封装了签名与验签，开发者无需关注签名与验签     
@@ -68,6 +90,11 @@ public class Pay extends HttpServlet {
 		    alipay_request.setNotifyUrl(AlipayConfig.notify_url);
 		    // 设置同步地址
 		    alipay_request.setReturnUrl(AlipayConfig.return_url);   
+		    
+		    
+		    //将支付信息存储到数据库
+		    OrderStoreService orderStoreService = new OrderStoreService();
+		    orderStoreService.insertOrder(orderStore);
 		    
 		    // form表单生产
 		    String form = "";
